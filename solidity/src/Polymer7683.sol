@@ -39,6 +39,7 @@ contract Polymer7683 is BasicSwap7683, Ownable {
     error InvalidDestinationContract();
     error UnregisteredDestinationChain();
     error SettlementFailed();
+    error RefundFailed();
 
     // ============ Constructor ============
     /**
@@ -143,7 +144,7 @@ contract Polymer7683 is BasicSwap7683, Ownable {
         );
         
         // Check if order was successfully refunded
-        if (orderStatus[orderId] != REFUNDED) revert SettlementFailed();
+        if (orderStatus[orderId] != REFUNDED) revert RefundFailed();
     }
 
     // ============ Internal Functions ============

@@ -440,6 +440,26 @@ contract Polymer7683Test is Test {
         polymer7683.handleRefundWithProof(orderId, proof);
     }
 
+    function test_handleRefundWithProof_failsWhenNotRefunded() public {
+        // Register destination contract
+        vm.prank(owner);
+        polymer7683.setDestinationContract(destChainId, destContract);
+    
+        // Create a mock order ID that doesn't exist in the system
+        bytes32 nonExistentOrderId = bytes32("nonExistentOrderId");
+    
+        // Create array with the nonexistent order ID
+        bytes32[] memory orderIds = new bytes32[](1);
+        orderIds[0] = nonExistentOrderId;
+    
+        // Create a valid proof but for an order that doesn't exist
+        bytes memory proof = _createRefundProof(destChainId, destContract, orderIds);
+    
+        // Should revert with RefundFailed because the order doesn't exist
+        vm.expectRevert(Polymer7683.RefundFailed.selector);
+        polymer7683.handleRefundWithProof(nonExistentOrderId, proof);
+    }
+
     function test_handleSettlementWithProof_wrongEmitter() public {
         vm.prank(owner);
         polymer7683.setDestinationContract(destChainId, destContract);
