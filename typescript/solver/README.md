@@ -32,7 +32,7 @@ solver/
     ├── types.ts
     ├── utils.ts
     ├── contracts/
-    └── <eco|hyperlane7683>/
+    └── <eco|hyperlane7683|optimism7683>/
         ├── index.ts
         ├── listener.ts
         ├── filler.ts
@@ -57,7 +57,7 @@ solver/
     - **`prepareIntent`**: evaluate allow/block lists, balances, and run the defined rules to decide whether to fill or not an intent.
     - **`fill`**: The actual filling.
     - **`settle`**: The settlement step, can be avoided.
-  - **<eco|hyperlane7683>/**: Implements the solvers for the ECO and Hyperlane7683 domains.
+  - **<eco|hyperlane7683|optimism7683>/**: Implements the solvers for the ECO, hyperlane7683 and Optimism7683 domains.
     - **listener.ts**: Extends `BaseListener` to handle domain-specific events.
     - **filler.ts**: Extends `BaseFiller` to handle domain-specific intents.
     - **contracts/**: Contains contract ABI and type definitions for interacting with domain-specific contracts.
