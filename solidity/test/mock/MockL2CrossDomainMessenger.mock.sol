@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.25;
+
 /**
  * @title MockL2CrossDomainMessenger
  * @notice A mock implementation for testing
