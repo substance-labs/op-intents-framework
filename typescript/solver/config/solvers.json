@@ -1,8 +1,12 @@
 {
   "eco": {
-    "enabled": true
+    "enabled": false
   },
   "hyperlane7683": {
-    "enabled": true
+    "enabled": false
+  },
+  "optimism7683": {
+    "enabled": true,
+    "options": {}
   }
 }
