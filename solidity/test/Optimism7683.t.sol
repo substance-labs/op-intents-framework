@@ -274,14 +274,62 @@ contract Optimism7683Test is BaseTest {
         // Verify message content by decoding it
         bytes memory expectedMessage = abi.encodeCall(
             Optimism7683.handleSettle,
-            (
-                originChainId,
-                TypeCasts.addressToBytes32(address(originRouter)),
-                Optimism7683Message.encodeSettle(orderIds, fillerData)
-            )
+            (Optimism7683Message.encodeSettle(orderIds, fillerData))
         );
         
         assertEq(keccak256(message), keccak256(expectedMessage));
+    }
+
+    /**
+     * @notice Test that handleSettle can only be called by the L2_TO_L2_CROSS_DOMAIN_MESSENGER
+     * @dev This tests the current implementation which checks msg.sender and the cross domain context
+     */
+    function test_handleSettle_onlyFromOPBridge() public {
+        // Create test data
+        bytes32[] memory orderIds = new bytes32[](1);
+        orderIds[0] = bytes32(uint256(1));
+        
+        bytes[] memory fillerData = new bytes[](1);
+        fillerData[0] = abi.encode(bytes32(uint256(uint160(kakaroto))));
+        
+        // Encode the settlement message
+        bytes memory message = Optimism7683Message.encodeSettle(orderIds, fillerData);
+        
+        // Setup the mock messenger
+        MockL2CrossDomainMessenger messenger = MockL2CrossDomainMessenger(payable(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER));
+        
+        // Test Case 1: Try to call handleSettle from an account that is not the L2_TO_L2_CROSS_DOMAIN_MESSENGER
+        address notMessenger = makeAddr("notMessenger");
+        vm.prank(notMessenger);
+        vm.expectRevert("Optimism7683: not a cross-domain message");
+        originRouter.handleSettle(message);
+        
+        // Test Case 2: Call from the messenger but with a wrong domain context
+        uint32 wrongDomain = 54321;
+        
+        // Configure messenger to return wrong domain and an unregistered sender
+        messenger.setCrossDomainMessageContext(makeAddr("wrongSender"), wrongDomain);
+        
+        // Now call from the correct messenger address but with wrong context
+        vm.prank(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
+        vm.expectRevert("Optimism7683: unauthorized sender");
+        originRouter.handleSettle(message);
+        
+        // Test Case 3: Call from the messenger with correct context
+        // Configure messenger with correct domain and sender
+        messenger.setCrossDomainMessageContext(address(destRouter), destChainId);
+        
+        // Now call from the correct messenger address with correct context
+        vm.prank(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
+        originRouter.handleSettle(message);
+        
+        // Verify that the message was processed correctly
+        assertEq(originRouter.settledOrderIds().length, 1);
+        assertEq(originRouter.settledOrderIds()[0], orderIds[0]);
+        assertEq(originRouter.settledOrigins()[0], destChainId);
+        // The contract stores the msg.sender address converted to bytes32
+        assertEq(originRouter.settledSenders()[0], bytes32(uint256(uint160(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER)))); 
+        assertEq(originRouter.settledReceivers()[0], bytes32(uint256(uint160(kakaroto))));
     }
     
     // Test dispatching refund
@@ -320,11 +368,7 @@ contract Optimism7683Test is BaseTest {
         // Verify message content by decoding it
         bytes memory expectedMessage = abi.encodeCall(
             Optimism7683.handleSettle,
-            (
-                originChainId,
-                TypeCasts.addressToBytes32(address(originRouter)),
-                Optimism7683Message.encodeRefund(orderIds)
-            )
+            (Optimism7683Message.encodeRefund(orderIds))
         );
         
         assertEq(keccak256(message), keccak256(expectedMessage));
@@ -344,8 +388,13 @@ contract Optimism7683Test is BaseTest {
         // Encode the settlement message
         bytes memory message = Optimism7683Message.encodeSettle(orderIds, fillerData);
         
-        // Call handleSettle
-        originRouter.handleSettle(destChainId, destRouterB32, message);
+        // Setup the cross domain context
+        MockL2CrossDomainMessenger messenger = MockL2CrossDomainMessenger(payable(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER));
+        messenger.setCrossDomainMessageContext(address(destRouter), destChainId);
+        
+        // Call handleSettle from the expected sender (L2_TO_L2_CROSS_DOMAIN_MESSENGER)
+        vm.prank(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
+        originRouter.handleSettle(message);
         
         // Check that the orders were handled correctly
         assertEq(originRouter.settledOrderIds().length, 2);
@@ -355,8 +404,10 @@ contract Optimism7683Test is BaseTest {
         assertEq(originRouter.settledOrigins()[0], destChainId);
         assertEq(originRouter.settledOrigins()[1], destChainId);
         
-        assertEq(originRouter.settledSenders()[0], destRouterB32);
-        assertEq(originRouter.settledSenders()[1], destRouterB32);
+        // Expected sender is messenger address converted to bytes32
+        bytes32 expectedSender = bytes32(uint256(uint160(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER)));
+        assertEq(originRouter.settledSenders()[0], expectedSender);
+        assertEq(originRouter.settledSenders()[1], expectedSender);
         
         assertEq(originRouter.settledReceivers()[0], bytes32(uint256(uint160(kakaroto))));
         assertEq(originRouter.settledReceivers()[1], bytes32(uint256(uint160(karpincho))));
@@ -372,8 +423,13 @@ contract Optimism7683Test is BaseTest {
         // Encode the refund message
         bytes memory message = Optimism7683Message.encodeRefund(orderIds);
         
-        // Call handleSettle
-        originRouter.handleSettle(destChainId, destRouterB32, message);
+        // Setup the cross domain context
+        MockL2CrossDomainMessenger messenger = MockL2CrossDomainMessenger(payable(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER));
+        messenger.setCrossDomainMessageContext(address(destRouter), destChainId);
+        
+        // Call handleSettle from the expected sender (L2_TO_L2_CROSS_DOMAIN_MESSENGER)
+        vm.prank(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
+        originRouter.handleSettle(message);
         
         // Check that the orders were handled correctly
         assertEq(originRouter.refundedOrderIds().length, 2);
@@ -383,7 +439,9 @@ contract Optimism7683Test is BaseTest {
         assertEq(originRouter.refundedOrigins()[0], destChainId);
         assertEq(originRouter.refundedOrigins()[1], destChainId);
         
-        assertEq(originRouter.refundedSenders()[0], destRouterB32);
-        assertEq(originRouter.refundedSenders()[1], destRouterB32);
+        // Expected sender is messenger address converted to bytes32
+        bytes32 expectedSender = bytes32(uint256(uint160(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER)));
+        assertEq(originRouter.refundedSenders()[0], expectedSender);
+        assertEq(originRouter.refundedSenders()[1], expectedSender);
     }
 }

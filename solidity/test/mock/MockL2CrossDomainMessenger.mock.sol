@@ -16,6 +16,10 @@ contract MockL2CrossDomainMessenger {
     // Return values
     bytes32 public returnHash = bytes32(uint256(1));
     
+    // Cross-domain context for testing
+    address public mockSender = address(0);
+    uint256 public mockChainId = 0;
+    
     // Reset function for testing
     function resetMessages() external {
         delete messageHashes;
@@ -65,5 +69,16 @@ contract MockL2CrossDomainMessenger {
             );
         }
         return (bytes32(0), bytes(""), 0, address(0), address(0));
+    }
+    
+    // Set the cross-domain message context for testing
+    function setCrossDomainMessageContext(address _sender, uint256 _chainId) external {
+        mockSender = _sender;
+        mockChainId = _chainId;
+    }
+    
+    // Implement the crossDomainMessageContext function to match the real interface
+    function crossDomainMessageContext() external view returns (address, uint256) {
+        return (mockSender, mockChainId);
     }
 }
