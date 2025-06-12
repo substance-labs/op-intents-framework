@@ -264,21 +264,6 @@ export class Optimism7683Filler extends BaseFiller<Optimism7683Metadata, ParsedA
     });
   }
 
-  // protected async prepareIntent(
-  //   parsedArgs: ParsedArgs
-  // ): Promise<Result<IntentData>> {
-  //   try {
-  //     await super.prepareIntent(parsedArgs);
-  //     // TODO: Add your intent preparation logic here
-  //     return { success: true, data: {} };
-  //   } catch (error: any) {
-  //     return {
-  //       error: error.message ?? "Failed to prepare Optimism7683 Intent.",
-  //       success: false,
-  //     };
-  //   }
-  // }
-
   protected async prepareIntent(
     parsedArgs: OpenEventArgs,
   ): Promise<Result<IntentData>> {
@@ -300,11 +285,10 @@ export class Optimism7683Filler extends BaseFiller<Optimism7683Metadata, ParsedA
     }
   }
 
-  protected async settle(
+  protected async settleOrder(
     parsedArgs: OpenEventArgs,
     data: IntentData,
-    originChainName: string,
-    blockNumber: number
+    originChainName: string
   ): Promise<void> {
     log.info({
       msg: "Settling Intent",
